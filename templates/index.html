@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LexiGenius - Smart Dictionary</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Dictionary</h1>
+            <p class="subtitle">Your smart personal dictionary</p>
+        </header>
+        
+        <div class="search-box">
+            <input type="text" id="word-input" placeholder="Enter a word (e.g., 'happy')" autocomplete="off">
+            <button id="search-btn"><i class="fas fa-search"></i></button>
+        </div>
+        
+        <div class="error" id="error-message"></div>
+        <div class="loading" id="loading-indicator">
+            <i class="fas fa-spinner fa-spin"></i> Searching...
+        </div>
+        
+        <div class="word-info" id="word-info" style="display: none;">
+            <div class="word-header">
+                <div class="word" id="word-display"></div>
+                <div class="pos" id="pos-display"></div>
+            </div>
+            
+            <div class="definition" id="definition-display"></div>
+            
+            <div class="tabs">
+                <div class="tab active" data-tab="synonyms">Synonyms</div>
+                <div class="tab" data-tab="antonyms">Antonyms</div>
+                <div class="tab" data-tab="examples">Examples</div>
+            </div>
+            
+            <div class="content active" id="synonyms-content">
+                <h3 class="section-title"><i class="fas fa-sync-alt"></i> Similar Words</h3>
+                <div class="word-list" id="synonyms-list"></div>
+            </div>
+            
+            <div class="content" id="antonyms-content">
+                <h3 class="section-title"><i class="fas fa-arrows-alt-h"></i> Opposite Words</h3>
+                <div class="word-list" id="antonyms-list"></div>
+            </div>
+            
+            <div class="content" id="examples-content">
+                <h3 class="section-title"><i class="fas fa-comment-alt"></i> Usage Examples</h3>
+                <ul class="examples" id="examples-list"></ul>
+            </div>
+        </div>
+        
+        <footer>
+            <p>MNR &copy; <span id="current-year"></span> • Powered by NLTK WordNet</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set current year
+            document.getElementById('current-year').textContent = new Date().getFullYear();
+            
+            // Tab functionality
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs and contents
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and corresponding content
+                    tab.classList.add('active');
+                    const tabId = tab.getAttribute('data-tab');
+                    document.getElementById(`${tabId}-content`).classList.add('active');
+                });
+            });
+            
+            // Search functionality
+            const searchBtn = document.getElementById('search-btn');
+            const wordInput = document.getElementById('word-input');
+            
+            searchBtn.addEventListener('click', searchWord);
+            wordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchWord();
+                }
+            });
+            
+            function searchWord() {
+                const word = wordInput.value.trim();
+                if (!word) {
+                    showError('Please enter a word to search');
+                    return;
+                }
+                
+                // Show loading indicator
+                document.getElementById('loading-indicator').style.display = 'block';
+                document.getElementById('error-message').style.display = 'none';
+                document.getElementById('word-info').style.display = 'none';
+                
+                // Call backend API
+                fetch(`/api/word?q=${encodeURIComponent(word)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Word not found');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        displayWordData(data);
+                    })
+                    .catch(error => {
+                        showError(error.message || 'An error occurred. Please try again.');
+                    })
+                    .finally(() => {
+                        document.getElementById('loading-indicator').style.display = 'none';
+                    });
+            }
+            
+            function displayWordData(data) {
+                if (!data || !data.word) {
+                    showError('No results found for this word');
+                    return;
+                }
+                
+                // Display basic word info
+                document.getElementById('word-display').textContent = data.word;
+                document.getElementById('pos-display').textContent = data.pos || '';
+                document.getElementById('definition-display').textContent = Array.isArray(data.definition) ? data.definition.join('\n') : 
+                (data.definition || 'No definition available');
+                
+                // Display synonyms
+                const synonymsList = document.getElementById('synonyms-list');
+                synonymsList.innerHTML = '';
+                if (data.synonyms && data.synonyms.length > 0) {
+                    data.synonyms.forEach(syn => {
+                        const item = document.createElement('div');
+                        item.className = 'word-item';
+                        item.textContent = syn;
+                        synonymsList.appendChild(item);
+                    });
+                } else {
+                    synonymsList.innerHTML = '<p>No synonyms found</p>';
+                }
+                
+                // Display antonyms
+                const antonymsList = document.getElementById('antonyms-list');
+                antonymsList.innerHTML = '';
+                if (data.antonyms && data.antonyms.length > 0) {
+                    data.antonyms.forEach(ant => {
+                        const item = document.createElement('div');
+                        item.className = 'word-item';
+                        item.textContent = ant;
+                        antonymsList.appendChild(item);
+                    });
+                } else {
+                    antonymsList.innerHTML = '<p>No antonyms found</p>';
+                }
+                
+                // Display examples
+                const examplesList = document.getElementById('examples-list');
+                examplesList.innerHTML = '';
+                if (data.examples && data.examples.length > 0) {
+                    data.examples.forEach(ex => {
+                        const item = document.createElement('li');
+                        item.textContent = ex;
+                        examplesList.appendChild(item);
+                    });
+                } else {
+                    examplesList.innerHTML = '<li>No examples found</li>';
+                }
+                
+                // Show word info section
+                document.getElementById('word-info').style.display = 'block';
+            }
+            
+            function showError(message) {
+                const errorEl = document.getElementById('error-message');
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
