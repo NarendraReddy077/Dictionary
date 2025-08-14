@@ -40,9 +40,8 @@ def word_lookup():
         definition = [synset.definition().capitalize() for synset in synsets][:3]
 
         examples = []
-        if len(synsets) > 2:
-            for synset in synsets[:2]:
-                examples.extend(synset.examples().capitalize())
+        for synset in synsets[:2]:
+            examples.extend([ex.capitalize() for ex in synset.examples()])
 
         result = {
             'word': word,
