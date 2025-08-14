@@ -3,7 +3,6 @@ from nltk.corpus import wordnet as wn
 import nltk
 import os
 
-# Download WordNet data if not already present
 nltk.download('wordnet')
 nltk.download('omw-1.4')
 
@@ -38,12 +37,12 @@ def word_lookup():
                     ant = antonym.name().replace('_', ' ')
                     antonyms.add(ant)
 
-        definition = [synset.definition() for synset in synsets][:3]
+        definition = [synset.definition().capitalize() for synset in synsets][:3]
 
         examples = []
         if len(synsets) > 2:
             for synset in synsets[:2]:
-                examples.extend(synset.examples())
+                examples.extend(synset.examples().capitalize())
 
         result = {
             'word': word,
