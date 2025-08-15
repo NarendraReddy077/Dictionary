@@ -124,7 +124,7 @@
                 // Display basic word info
                 document.getElementById('word-display').textContent = data.word;
                 document.getElementById('pos-display').textContent = data.pos || '';
-                document.getElementById('definition-display').textContent = Array.isArray(data.definition) ? data.definition.join('\n') : 
+                document.getElementById('definition-display').textContent = Array.isArray(data.definition) ? data.definition.join(', ') : 
                 (data.definition || 'No definition available');
                 
                 // Display synonyms
